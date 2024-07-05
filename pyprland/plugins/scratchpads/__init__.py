@@ -588,19 +588,7 @@ class Extension(CastBoolMixin, Plugin):  # pylint: disable=missing-class-docstri
             self.focused_window_tracking[scratch.uid] = FocusTracker(self.previously_focused_window, wrkspc)
 
         scratch.meta.last_shown = time.time()
-        # Start the transition
-        preserve_aspect = self.cast_bool(scratch.conf.get("preserve_aspect"))
-        should_set_aspect = (
-            not (preserve_aspect and was_alive) or scratch.monitor != state.active_monitor
-        )  # not aspect preserving or it's newly spawned
-        if should_set_aspect:
-            await self._fix_size(scratch, monitor)
-        position_fixed = False
-        if should_set_aspect:
-            position_fixed = await self._fix_position(scratch, monitor)
 
-        clients = await self.hyprctl_json("clients")
-        await self._handle_multiwindow(scratch, clients)
         # move
         move_commands = [
             f"moveworkspacetomonitor special:scratch_{scratch.uid} {monitor['name']}",
@@ -616,6 +604,20 @@ class Extension(CastBoolMixin, Plugin):  # pylint: disable=missing-class-docstri
             )
 
         await self.hyprctl(move_commands)
+
+        # Start the transition
+        preserve_aspect = self.cast_bool(scratch.conf.get("preserve_aspect"))
+        should_set_aspect = (
+            not (preserve_aspect and was_alive) or scratch.monitor != state.active_monitor
+        )  # not aspect preserving or it's newly spawned
+        if should_set_aspect:
+            await self._fix_size(scratch, monitor)
+        position_fixed = False
+        if should_set_aspect:
+            position_fixed = await self._fix_position(scratch, monitor)
+
+        clients = await self.hyprctl_json("clients")
+        await self._handle_multiwindow(scratch, clients)
         await self._update_infos(scratch, clients)
 
         if not position_fixed:
